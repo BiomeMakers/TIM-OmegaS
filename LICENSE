@@ -1,0 +1,136 @@
+                    GNU AFFERO GENERAL PUBLIC LICENSE
+                       Version 3, 19 November 2007
+
+Copyright (C) 2026 Alberto Acedo / Biome Makers Inc.
+All rights reserved.
+
+The TIM method and its implementation are covered by a pending patent
+application with the United States Patent and Trademark Office
+(No. 64/121,656, filed 29 July 2026).
+
+This software is licensed under the GNU Affero General Public License
+version 3 ("AGPL-3.0") for non-commercial research and academic use,
+subject to the Additional Terms set out in the COMMERCIAL-LICENSE.md file
+in this repository.
+
+IMPORTANT: If you intend to use this software for commercial purposes,
+please read COMMERCIAL-LICENSE.md before proceeding. Commercial use
+without a separate commercial license agreement is not permitted.
+Evaluation inside a commercial organisation is an explicit exception and
+is granted here: see clause 1(d) below.
+
+                   GNU AFFERO GENERAL PUBLIC LICENSE
+                   Terms and Conditions for Copying, Distribution and Modification
+
+  0. Definitions.
+
+  "The Program" refers to any copyrightable work licensed under this License.
+
+  "The Software" means the TIM (Task Interference Mapping) implementation
+  and associated code contained in this repository.
+
+  "Non-Commercial Research Use" means use by academic institutions,
+  individual researchers, and non-profit organizations for the purpose
+  of academic research, education, and non-commercial experimentation,
+  provided that no revenue is generated from the use of the Software or
+  from products or services that incorporate the Software.
+
+  "Evaluation Use" means running the diagnostic on your own models and
+  tasks in order to decide whether the method is of use to you, including
+  inside a for-profit organization, and reporting or publishing the result.
+  It does not include placing an adapter chosen by the Software in a model
+  that is deployed or offered commercially.
+
+  1. PERMISSIONS FOR NON-COMMERCIAL RESEARCH USE
+
+  Subject to the terms and conditions of this License, and provided that
+  your use qualifies as Non-Commercial Research Use, you are granted a
+  worldwide, royalty-free, non-exclusive license to:
+
+     a) Use, copy, and modify the Software for Non-Commercial Research Use.
+
+     b) Distribute verbatim or modified copies of the Software, provided
+        that you:
+        (i)  retain this license notice and the copyright notice above;
+        (ii) distribute any modified version under the same AGPL-3.0 terms;
+        (iii) make the complete source code of any modified version publicly
+              available if you use it to provide a network service.
+
+     c) Publish academic papers, preprints, and research reports describing
+        results obtained using the Software, provided that such publications
+        cite the original work:
+
+        Acedo, A. (2026). TIM: Adapter Placement by Task Interference
+        Mapping. Preprint. Patent pending, USPTO No. 64/121,656.
+
+     d) EVALUATION EXCEPTION. Evaluation Use as defined above is granted
+        free of charge and without a separate agreement, including to
+        for-profit organizations, and you do not need to ask. This exception
+        exists because the method is offered as a measurement to run rather
+        than a rule to adopt, and a report that the ordering comes out
+        differently on your model is as useful to us as one that confirms
+        it. Any use beyond Evaluation Use by a for-profit organization
+        requires a commercial license.
+
+  2. COPYLEFT OBLIGATION (AGPL Network Use Provision)
+
+  If you modify the Software and use it to provide a service over a network
+  (including but not limited to: an API, a web application, a machine
+  learning platform, or a model training service), you MUST make the
+  complete corresponding source code of your modified version available to
+  all users of that service, under the terms of this License.
+
+  This provision is the core enforcement mechanism of AGPL-3.0: it ensures
+  that companies deploying a modified version of TIM as a service must
+  either open-source their modifications or obtain a commercial license.
+
+  3. PATENT NOTICE
+
+  The TIM method, including the selection of adapter placement from the
+  overlap between the gradient subspaces of two tasks measured before
+  training, is covered by USPTO Patent Application Serial No. 64/121,656,
+  filed 29 July 2026. That application was filed covering the development
+  of a weight-space regularisation method together with the placement
+  procedure evaluated alongside it, and both are within the filing. The
+  serial number above is the preliminary number assigned on electronic
+  filing and remains subject to the official filing receipt.
+
+  This license does not grant any rights under the patent beyond those
+  necessary to exercise the software license rights granted above for
+  Non-Commercial Research Use and Evaluation Use.
+
+  For commercial use, patent licensing is included in the commercial
+  license agreement described in COMMERCIAL-LICENSE.md.
+
+  4. NO WARRANTY
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+  OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+  MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
+  IN NO EVENT SHALL THE AUTHOR OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+  CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+  TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+  SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+  5. FULL AGPL-3.0 TEXT
+
+  The complete text of the GNU Affero General Public License version 3
+  is available at: https://www.gnu.org/licenses/agpl-3.0.html
+
+  The terms of AGPL-3.0 apply in full to this Software, supplemented by
+  the Additional Commercial Terms in COMMERCIAL-LICENSE.md and the patent
+  notice above. In case of conflict between AGPL-3.0 and these Additional
+  Terms, the Additional Terms shall prevail to the extent permitted by law.
+
+  6. SCOPE: SOFTWARE ONLY
+
+  This License covers the code in this repository. The accompanying paper
+  is published separately under Creative Commons Attribution-NonCommercial-
+  NoDerivatives 4.0 International (CC BY-NC-ND 4.0), the same licence as the
+  companion paper arXiv:2608.03887.
+
+---
+
+For questions regarding licensing, contact:
+Alberto Acedo, acedo@biomemakers.com
+GitHub: https://github.com/BiomeMakers/TIM-OmegaS

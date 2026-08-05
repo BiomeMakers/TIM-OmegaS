@@ -1,0 +1,147 @@
+{
+  "_method": "TIM (Task Interference Mapping)",
+  "_what": "Adapter placement chosen by pre-training gradient-subspace overlap. Llama-3-8B, code -> prose, LoRA r=8. All arms adapt 31 modules, so what varies is location and not capacity.",
+  "_suggested_set": "quartile of largest drop from the same-task ceiling: 17 o_proj, 10 q_proj, 4 k_proj, and no v_proj at all",
+  "retention": {
+    "suggested": {
+      "42": 0.5333,
+      "123": 0.5,
+      "456": 0.6786,
+      "789": 0.7778,
+      "1011": 0.7447,
+      "2022": 0.7556,
+      "3033": 0.8571,
+      "4044": 0.8049,
+      "5055": 0.9778,
+      "6066": 0.9268
+    },
+    "conventional": {
+      "42": 0.3913,
+      "123": 0.575,
+      "456": 0.4651,
+      "789": 0.7381,
+      "1011": 0.4889,
+      "2022": 0.55,
+      "3033": 0.36,
+      "4044": 0.4211,
+      "5055": 0.9,
+      "6066": 0.5156
+    },
+    "suggested_plus_omega": {
+      "42": 0.9796,
+      "123": 0.6481,
+      "456": 1.3,
+      "789": 0.8261,
+      "1011": 0.807,
+      "2022": 0.6481,
+      "3033": 0.9318,
+      "4044": 0.5946,
+      "5055": 0.7115,
+      "6066": 0.58
+    }
+  },
+  "humaneval_after_task_A": {
+    "suggested": {
+      "42": 0.2744,
+      "123": 0.2561,
+      "456": 0.3415,
+      "789": 0.2744,
+      "1011": 0.2866,
+      "2022": 0.2744,
+      "3033": 0.2561,
+      "4044": 0.25,
+      "5055": 0.2744,
+      "6066": 0.25
+    },
+    "conventional": {
+      "42": 0.2805,
+      "123": 0.2439,
+      "456": 0.2622,
+      "789": 0.2561,
+      "1011": 0.2744,
+      "2022": 0.2439,
+      "3033": 0.3049,
+      "4044": 0.3476,
+      "5055": 0.2439,
+      "6066": 0.3902
+    },
+    "suggested_plus_omega": {
+      "42": 0.2988,
+      "123": 0.3293,
+      "456": 0.2439,
+      "789": 0.2805,
+      "1011": 0.3476,
+      "2022": 0.3293,
+      "3033": 0.2683,
+      "4044": 0.2256,
+      "5055": 0.3171,
+      "6066": 0.3049
+    }
+  },
+  "means": {
+    "suggested": {
+      "retention": 0.7557,
+      "absolute": 0.2061
+    },
+    "conventional": {
+      "retention": 0.5405,
+      "absolute": 0.1506
+    },
+    "suggested_plus_omega": {
+      "retention": 0.8027,
+      "absolute": 0.2335
+    }
+  },
+  "tests": {
+    "suggested_vs_conventional": {
+      "wins": "9/10",
+      "sign_p": 0.0107,
+      "wilcoxon_p": 0.0059,
+      "absolute_gain": "+36.8% relative",
+      "_note": "neither arm uses any penalty"
+    },
+    "adding_a_regulariser_on_top": {
+      "wins": "6/10 retention, 7/10 absolute",
+      "wilcoxon_p": 0.85,
+      "_note": "not distinguishable; the difference sits below the run-to-run sd of 0.104"
+    }
+  },
+  "run_to_run_noise": {
+    "sd": 0.104,
+    "_note": "same seed, same config, same hardware. Any mean difference below 0.066 is not distinguishable at ten seeds."
+  },
+  "transfer_of_the_diagnostic": {
+    "_note": "diagnostic only, no training. o_proj first and q_proj second in all five.",
+    "llama3_8b_code_prose": {
+      "o": 0.751,
+      "q": 0.683,
+      "k": 0.648,
+      "v": 0.584
+    },
+    "llama3_8b_code_math": {
+      "o": 0.698,
+      "q": 0.681,
+      "k": 0.646,
+      "v": 0.566
+    },
+    "llama3_8b_prose_math": {
+      "o": 0.511,
+      "q": 0.403,
+      "k": 0.213,
+      "v": 0.244
+    },
+    "mistral7b_code_prose": {
+      "o": 0.717,
+      "q": 0.395,
+      "k": 0.394,
+      "v": 0.336
+    },
+    "qwen25_7b_code_prose": {
+      "o": 0.592,
+      "q": 0.445,
+      "k": 0.322,
+      "v": 0.367
+    }
+  },
+  "not_validated": "Training validation was attempted on Mistral-7B and could not be completed: that base model has near-zero HumanEval capability, so retention is undefined. A second training validation remains open."
+}

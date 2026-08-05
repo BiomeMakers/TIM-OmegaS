@@ -1,0 +1,13 @@
+# Internal notes: NOT for the public repository
+/PUBLICAR.md
+/arxiv_submission.txt
+
+# Output of the diagnostic (written at the repo root by default).
+# Root-anchored on purpose: results/placement.json is DATA the README links to
+# and must stay in the repo.
+/placement_*.json
+/check_M.json
+
+__pycache__/
+*.pyc
+.DS_Store
