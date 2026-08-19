@@ -2,6 +2,12 @@
 
 **Task Interference Mapping**
 
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/BiomeMakers/TIM-OmegaS/blob/main/notebooks/TIM_placement_colab.ipynb)
+
+Measure where to put your LoRA adapter, on your own model and your own pair of
+tasks, in a free Colab. No training, no clone: it prints a `target_modules` list
+ready to paste into `LoraConfig`.
+
 [![USPTO Patent Pending](https://img.shields.io/badge/USPTO-Patent%20Pending%2064%2F121%2C656-blue)](https://www.uspto.gov)
 
 **LoRA tells you how to adapt. TIM tells you where.**

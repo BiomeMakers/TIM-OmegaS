@@ -18,10 +18,7 @@ its same-task ceiling, its cross-task overlap, the relative drop `rel`, and a
 `saturated` flag. The suggested placement is the top quartile of the
 non-saturated rows by `rel`.
 
-Two claims of the paper are checkable from this output alone: that the leading
-cosine saturates at 1.0 for every k while the overlap dimension does not, and
-the composition of the suggested set on Llama-3-8B (17 `o_proj`, 10 `q_proj`,
-4 `k_proj`, no `v_proj` at all).
+Two claims of the paper are checkable from this output alone: that on Llama-3-8B the leading cosine saturates at 1.0 for every k while the overlap dimension does not, and the composition of the suggested set on that model. The saturation is model-dependent and does not reproduce elsewhere: the median leading cross-task cosine is 0.858 on Mistral-7B-v0.3, 0.844 on Qwen2.5-7B and 0.890 on TinyLlama-1.1B.
 
 ## The retention experiment: NOT reproducible from this repository alone
 
