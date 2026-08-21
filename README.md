@@ -280,3 +280,11 @@ July 2026).
   note   = {Preprint. USPTO Patent Pending No. 64/121,656}
 }
 ```
+
+## Paper and data
+
+Paper: https://doi.org/10.5281/zenodo.21999658 (this DOI always resolves to the
+latest version).
+
+Per-seed results of the pre-registered control arm, with both arms run in a
+single session, are in [`results/reader_control/`](results/reader_control/).
