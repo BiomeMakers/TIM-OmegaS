@@ -1,0 +1,121 @@
+#!/bin/bash
+# =============================================================================
+# run_placement_B.sh  --  ARM B (reader_v1) of the placement comparison.
+#
+# NO PENALTY IS INVOLVED, exactly as in run_placement.sh. Plain LoRA, arm=none.
+# What varies against arm A (suggested) is WHERE the adapter goes, nothing else.
+#
+# ARM B: the placement a reader of the published v1 could build. The paper
+#   reports the TYPE composition (17 o_proj, 10 q_proj, 4 k_proj) but NOT the
+#   depth distribution, so layers are drawn at random, ONE DRAW PER SEED.
+#   Lists frozen on 2026-08-19, before any result existed, with
+#   random.Random(seed) and random.sample(range(32), n) over o, q, k.
+#   See TIM_preregistro_pod_20260819.md and TIM_brazoB_reader_v1_placements.json
+#
+# THE CONTROL: 31 modules in every arm and every seed, so capacity is fixed.
+#   The harness prints how many it adapted. IF IT DOES NOT PRINT 31, STOP:
+#   without the LORA_MODULES hook every arm silently falls back to q/v and the
+#   experiment returns a null result instead of an error.
+#
+# SEEDS ARE NOT FREE TO CHANGE: they must be the ten of pl_sug/pl_conv, because
+#   the analysis is paired.
+#
+#   Sized for 5 GPUs: two clean batches of five, no idle cards.
+#
+#   nohup bash run_placement_B.sh > run_placement_B.log 2>&1 &      # smoke test
+#   SMOKE=0 nohup bash run_placement_B.sh >> run_placement_B.log 2>&1 &
+# =============================================================================
+set -u
+cd "${HARNESS:-/workspace/omega-s}"
+export HF_HOME="${HF_HOME:-/workspace/hf}"
+export PYTHONPATH="${PWD}:${PYTHONPATH:-}"
+
+B_42="model.layers.0.self_attn.o_proj,model.layers.1.self_attn.o_proj,model.layers.2.self_attn.o_proj,model.layers.3.self_attn.o_proj,model.layers.4.self_attn.o_proj,model.layers.7.self_attn.o_proj,model.layers.8.self_attn.o_proj,model.layers.13.self_attn.o_proj,model.layers.17.self_attn.o_proj,model.layers.18.self_attn.o_proj,model.layers.20.self_attn.o_proj,model.layers.21.self_attn.o_proj,model.layers.23.self_attn.o_proj,model.layers.27.self_attn.o_proj,model.layers.29.self_attn.o_proj,model.layers.30.self_attn.o_proj,model.layers.31.self_attn.o_proj,model.layers.0.self_attn.q_proj,model.layers.6.self_attn.q_proj,model.layers.7.self_attn.q_proj,model.layers.13.self_attn.q_proj,model.layers.16.self_attn.q_proj,model.layers.17.self_attn.q_proj,model.layers.19.self_attn.q_proj,model.layers.20.self_attn.q_proj,model.layers.22.self_attn.q_proj,model.layers.24.self_attn.q_proj,model.layers.14.self_attn.k_proj,model.layers.17.self_attn.k_proj,model.layers.26.self_attn.k_proj,model.layers.28.self_attn.k_proj"
+B_123="model.layers.1.self_attn.o_proj,model.layers.2.self_attn.o_proj,model.layers.3.self_attn.o_proj,model.layers.4.self_attn.o_proj,model.layers.5.self_attn.o_proj,model.layers.8.self_attn.o_proj,model.layers.10.self_attn.o_proj,model.layers.12.self_attn.o_proj,model.layers.13.self_attn.o_proj,model.layers.17.self_attn.o_proj,model.layers.19.self_attn.o_proj,model.layers.20.self_attn.o_proj,model.layers.22.self_attn.o_proj,model.layers.24.self_attn.o_proj,model.layers.28.self_attn.o_proj,model.layers.30.self_attn.o_proj,model.layers.31.self_attn.o_proj,model.layers.0.self_attn.q_proj,model.layers.2.self_attn.q_proj,model.layers.5.self_attn.q_proj,model.layers.7.self_attn.q_proj,model.layers.12.self_attn.q_proj,model.layers.13.self_attn.q_proj,model.layers.19.self_attn.q_proj,model.layers.21.self_attn.q_proj,model.layers.22.self_attn.q_proj,model.layers.24.self_attn.q_proj,model.layers.0.self_attn.k_proj,model.layers.4.self_attn.k_proj,model.layers.20.self_attn.k_proj,model.layers.28.self_attn.k_proj"
+B_456="model.layers.1.self_attn.o_proj,model.layers.2.self_attn.o_proj,model.layers.3.self_attn.o_proj,model.layers.10.self_attn.o_proj,model.layers.12.self_attn.o_proj,model.layers.13.self_attn.o_proj,model.layers.14.self_attn.o_proj,model.layers.15.self_attn.o_proj,model.layers.16.self_attn.o_proj,model.layers.19.self_attn.o_proj,model.layers.20.self_attn.o_proj,model.layers.21.self_attn.o_proj,model.layers.23.self_attn.o_proj,model.layers.25.self_attn.o_proj,model.layers.28.self_attn.o_proj,model.layers.29.self_attn.o_proj,model.layers.30.self_attn.o_proj,model.layers.2.self_attn.q_proj,model.layers.4.self_attn.q_proj,model.layers.5.self_attn.q_proj,model.layers.6.self_attn.q_proj,model.layers.8.self_attn.q_proj,model.layers.12.self_attn.q_proj,model.layers.16.self_attn.q_proj,model.layers.19.self_attn.q_proj,model.layers.23.self_attn.q_proj,model.layers.29.self_attn.q_proj,model.layers.2.self_attn.k_proj,model.layers.4.self_attn.k_proj,model.layers.21.self_attn.k_proj,model.layers.30.self_attn.k_proj"
+B_789="model.layers.1.self_attn.o_proj,model.layers.4.self_attn.o_proj,model.layers.6.self_attn.o_proj,model.layers.9.self_attn.o_proj,model.layers.10.self_attn.o_proj,model.layers.11.self_attn.o_proj,model.layers.12.self_attn.o_proj,model.layers.15.self_attn.o_proj,model.layers.16.self_attn.o_proj,model.layers.17.self_attn.o_proj,model.layers.18.self_attn.o_proj,model.layers.20.self_attn.o_proj,model.layers.21.self_attn.o_proj,model.layers.22.self_attn.o_proj,model.layers.23.self_attn.o_proj,model.layers.30.self_attn.o_proj,model.layers.31.self_attn.o_proj,model.layers.6.self_attn.q_proj,model.layers.7.self_attn.q_proj,model.layers.8.self_attn.q_proj,model.layers.9.self_attn.q_proj,model.layers.11.self_attn.q_proj,model.layers.12.self_attn.q_proj,model.layers.14.self_attn.q_proj,model.layers.17.self_attn.q_proj,model.layers.19.self_attn.q_proj,model.layers.20.self_attn.q_proj,model.layers.11.self_attn.k_proj,model.layers.13.self_attn.k_proj,model.layers.22.self_attn.k_proj,model.layers.26.self_attn.k_proj"
+B_1011="model.layers.0.self_attn.o_proj,model.layers.3.self_attn.o_proj,model.layers.5.self_attn.o_proj,model.layers.8.self_attn.o_proj,model.layers.9.self_attn.o_proj,model.layers.12.self_attn.o_proj,model.layers.13.self_attn.o_proj,model.layers.14.self_attn.o_proj,model.layers.16.self_attn.o_proj,model.layers.21.self_attn.o_proj,model.layers.22.self_attn.o_proj,model.layers.23.self_attn.o_proj,model.layers.24.self_attn.o_proj,model.layers.25.self_attn.o_proj,model.layers.26.self_attn.o_proj,model.layers.27.self_attn.o_proj,model.layers.30.self_attn.o_proj,model.layers.0.self_attn.q_proj,model.layers.2.self_attn.q_proj,model.layers.6.self_attn.q_proj,model.layers.7.self_attn.q_proj,model.layers.11.self_attn.q_proj,model.layers.13.self_attn.q_proj,model.layers.15.self_attn.q_proj,model.layers.18.self_attn.q_proj,model.layers.26.self_attn.q_proj,model.layers.30.self_attn.q_proj,model.layers.0.self_attn.k_proj,model.layers.10.self_attn.k_proj,model.layers.17.self_attn.k_proj,model.layers.30.self_attn.k_proj"
+B_2022="model.layers.0.self_attn.o_proj,model.layers.1.self_attn.o_proj,model.layers.9.self_attn.o_proj,model.layers.10.self_attn.o_proj,model.layers.13.self_attn.o_proj,model.layers.14.self_attn.o_proj,model.layers.16.self_attn.o_proj,model.layers.17.self_attn.o_proj,model.layers.18.self_attn.o_proj,model.layers.20.self_attn.o_proj,model.layers.21.self_attn.o_proj,model.layers.22.self_attn.o_proj,model.layers.23.self_attn.o_proj,model.layers.24.self_attn.o_proj,model.layers.28.self_attn.o_proj,model.layers.30.self_attn.o_proj,model.layers.31.self_attn.o_proj,model.layers.1.self_attn.q_proj,model.layers.2.self_attn.q_proj,model.layers.8.self_attn.q_proj,model.layers.9.self_attn.q_proj,model.layers.11.self_attn.q_proj,model.layers.12.self_attn.q_proj,model.layers.23.self_attn.q_proj,model.layers.24.self_attn.q_proj,model.layers.26.self_attn.q_proj,model.layers.31.self_attn.q_proj,model.layers.10.self_attn.k_proj,model.layers.16.self_attn.k_proj,model.layers.26.self_attn.k_proj,model.layers.28.self_attn.k_proj"
+B_3033="model.layers.1.self_attn.o_proj,model.layers.2.self_attn.o_proj,model.layers.3.self_attn.o_proj,model.layers.6.self_attn.o_proj,model.layers.8.self_attn.o_proj,model.layers.9.self_attn.o_proj,model.layers.10.self_attn.o_proj,model.layers.12.self_attn.o_proj,model.layers.13.self_attn.o_proj,model.layers.15.self_attn.o_proj,model.layers.18.self_attn.o_proj,model.layers.21.self_attn.o_proj,model.layers.25.self_attn.o_proj,model.layers.26.self_attn.o_proj,model.layers.29.self_attn.o_proj,model.layers.30.self_attn.o_proj,model.layers.31.self_attn.o_proj,model.layers.3.self_attn.q_proj,model.layers.4.self_attn.q_proj,model.layers.12.self_attn.q_proj,model.layers.14.self_attn.q_proj,model.layers.17.self_attn.q_proj,model.layers.19.self_attn.q_proj,model.layers.20.self_attn.q_proj,model.layers.22.self_attn.q_proj,model.layers.27.self_attn.q_proj,model.layers.28.self_attn.q_proj,model.layers.8.self_attn.k_proj,model.layers.10.self_attn.k_proj,model.layers.24.self_attn.k_proj,model.layers.27.self_attn.k_proj"
+B_4044="model.layers.1.self_attn.o_proj,model.layers.4.self_attn.o_proj,model.layers.5.self_attn.o_proj,model.layers.6.self_attn.o_proj,model.layers.7.self_attn.o_proj,model.layers.10.self_attn.o_proj,model.layers.11.self_attn.o_proj,model.layers.12.self_attn.o_proj,model.layers.13.self_attn.o_proj,model.layers.14.self_attn.o_proj,model.layers.18.self_attn.o_proj,model.layers.19.self_attn.o_proj,model.layers.20.self_attn.o_proj,model.layers.21.self_attn.o_proj,model.layers.28.self_attn.o_proj,model.layers.29.self_attn.o_proj,model.layers.31.self_attn.o_proj,model.layers.4.self_attn.q_proj,model.layers.5.self_attn.q_proj,model.layers.10.self_attn.q_proj,model.layers.14.self_attn.q_proj,model.layers.15.self_attn.q_proj,model.layers.19.self_attn.q_proj,model.layers.20.self_attn.q_proj,model.layers.23.self_attn.q_proj,model.layers.28.self_attn.q_proj,model.layers.30.self_attn.q_proj,model.layers.3.self_attn.k_proj,model.layers.17.self_attn.k_proj,model.layers.22.self_attn.k_proj,model.layers.23.self_attn.k_proj"
+B_5055="model.layers.1.self_attn.o_proj,model.layers.3.self_attn.o_proj,model.layers.7.self_attn.o_proj,model.layers.9.self_attn.o_proj,model.layers.11.self_attn.o_proj,model.layers.12.self_attn.o_proj,model.layers.13.self_attn.o_proj,model.layers.15.self_attn.o_proj,model.layers.16.self_attn.o_proj,model.layers.19.self_attn.o_proj,model.layers.20.self_attn.o_proj,model.layers.21.self_attn.o_proj,model.layers.24.self_attn.o_proj,model.layers.26.self_attn.o_proj,model.layers.28.self_attn.o_proj,model.layers.29.self_attn.o_proj,model.layers.30.self_attn.o_proj,model.layers.3.self_attn.q_proj,model.layers.8.self_attn.q_proj,model.layers.10.self_attn.q_proj,model.layers.12.self_attn.q_proj,model.layers.13.self_attn.q_proj,model.layers.19.self_attn.q_proj,model.layers.25.self_attn.q_proj,model.layers.26.self_attn.q_proj,model.layers.28.self_attn.q_proj,model.layers.29.self_attn.q_proj,model.layers.6.self_attn.k_proj,model.layers.15.self_attn.k_proj,model.layers.16.self_attn.k_proj,model.layers.17.self_attn.k_proj"
+B_6066="model.layers.0.self_attn.o_proj,model.layers.1.self_attn.o_proj,model.layers.2.self_attn.o_proj,model.layers.5.self_attn.o_proj,model.layers.9.self_attn.o_proj,model.layers.11.self_attn.o_proj,model.layers.14.self_attn.o_proj,model.layers.15.self_attn.o_proj,model.layers.16.self_attn.o_proj,model.layers.19.self_attn.o_proj,model.layers.20.self_attn.o_proj,model.layers.21.self_attn.o_proj,model.layers.22.self_attn.o_proj,model.layers.27.self_attn.o_proj,model.layers.29.self_attn.o_proj,model.layers.30.self_attn.o_proj,model.layers.31.self_attn.o_proj,model.layers.0.self_attn.q_proj,model.layers.11.self_attn.q_proj,model.layers.13.self_attn.q_proj,model.layers.16.self_attn.q_proj,model.layers.17.self_attn.q_proj,model.layers.18.self_attn.q_proj,model.layers.20.self_attn.q_proj,model.layers.21.self_attn.q_proj,model.layers.24.self_attn.q_proj,model.layers.30.self_attn.q_proj,model.layers.0.self_attn.k_proj,model.layers.2.self_attn.k_proj,model.layers.17.self_attn.k_proj,model.layers.19.self_attn.k_proj"
+
+for s in 42 123 456 789 1011 2022 3033 4044 5055 6066; do
+  eval "n=\$(echo \$B_$s | tr ',' '\n' | wc -l)"
+  echo "seed $s -> $n modules"
+  [ "$n" -eq 31 ] || { echo "ABORT: seed $s does not have 31 modules"; exit 1; }
+done
+
+launch () {   # launch <seed> <gpu>
+  local s="$1"; local g="$2"
+  if [ -s "pl_B_s$s.json" ]; then echo "  seed $s already done, skipping"; return; fi
+  eval "local mods=\$B_$s"
+  CUDA_VISIBLE_DEVICES=$g LORA_MODULES="$mods" \
+    nohup python experiments/rerun_retention.py --arm none --seed $s \
+    --out pl_B_s$s.json > pl_B_s$s.log 2>&1 &
+  sleep 5
+}
+
+wait_all () {
+  sleep 120
+  while pgrep -f rerun_retention > /dev/null; do sleep 60; done
+  sleep 30
+}
+
+# --- SMOKE TEST: one seed alone, end to end, before spending the rest --------
+if [ "${SMOKE:-0}" = "1" ]; then
+  echo "[$(date +%H:%M:%S)] SMOKE: seed 42 on GPU 0"
+  launch 42 0
+  wait_all
+  grep -q "31 modulos adaptados\|31 modules adapted" pl_B_s42.log \
+    || { echo "ABORT: the harness did not adapt 31 modules. Check the LORA_MODULES hook."; exit 1; }
+  echo "--- what PEFT actually attached to (asked for on the HF forum, 21-Aug) ---"
+  echo "    If the harness exposes the peft model, these two lines are the real"
+  echo "    verification: targeted_module_names, and trainable parameters, which"
+  echo "    matter because equal module COUNT is not equal parameter BUDGET."
+  grep -i "targeted_module_names\|trainable params\|trainable parameters" pl_B_s42.log || \
+    echo "    (not logged yet: add peft_model.print_trainable_parameters() and"
+  echo "     print(peft_model.targeted_module_names) to the harness)"
+  python - <<'PY'
+import json
+a = json.load(open('pl_B_s42.json'))
+r = a[0] if isinstance(a, list) else a
+need = {'seed','arm','humaneval_after_A','humaneval_after_B','retention_pct','seconds'}
+miss = need - set(r)
+assert not miss, "ABORT: keys missing in the JSON: %s" % miss
+print("smoke OK:", {k: r[k] for k in ('seed','arm','humaneval_after_A','humaneval_after_B','retention_pct')})
+PY
+  echo "[$(date +%H:%M:%S)] smoke passed. Re-run with SMOKE=0 for the other nine."
+  exit 0
+fi
+
+# --- BATCH 1: five seeds, one per GPU -------------------------------------
+echo "[$(date +%H:%M:%S)] BATCH 1"
+g=0
+for s in 42 123 456 789 1011; do launch $s $g; g=$((g+1)); done
+
+# Early abort: the module count is printed in the first minutes. Rather than
+# paying 45 idle minutes for a separate smoke run, check here and kill fast.
+sleep 600
+if ! grep -q "31 modulos adaptados\|31 modules adapted" pl_B_s42.log 2>/dev/null; then
+  echo "ABORT: seed 42 did not report 31 adapted modules after 3 minutes."
+  echo "Check the LORA_MODULES hook. Killing everything now."
+  pkill -f rerun_retention
+  exit 1
+fi
+echo "  module count OK, letting batch 1 finish"
+grep -i "targeted_module_names\|trainable params\|trainable parameters" pl_B_s42.log || \
+  echo "  (consider logging peft_model.print_trainable_parameters() and targeted_module_names)"
+wait_all
+
+# --- BATCH 2: the remaining five ------------------------------------------
+echo "[$(date +%H:%M:%S)] BATCH 2"
+g=0
+for s in 2022 3033 4044 5055 6066; do launch $s $g; g=$((g+1)); done
+wait_all
+
+echo "[$(date +%H:%M:%S)] done"
+grep -H "RETENCION\|RETENTION" pl_B_s*.log
+echo
+echo "seeds completed: $(ls -1 pl_B_s*.json 2>/dev/null | wc -l) of 10"

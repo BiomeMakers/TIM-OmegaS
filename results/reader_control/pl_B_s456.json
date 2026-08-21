@@ -1,0 +1,19 @@
+[
+  {
+    "seed": 456,
+    "arm": "none",
+    "wd": 0.0,
+    "omega_lambda": null,
+    "cos_sign": null,
+    "omega_target": null,
+    "humaneval_after_A": 0.2682926829268293,
+    "humaneval_after_B": 0.15853658536585366,
+    "m_orientation": null,
+    "ppl_after_A": 8.508977941714825,
+    "ppl_after_B": 8.415556639752745,
+    "ppl_delta": -0.09342130196207954,
+    "retention_pct": 0.5909090909090908,
+    "seconds": 1210.3345401287079,
+    "smoke": false
+  }
+]

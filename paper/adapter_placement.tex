@@ -21,7 +21,11 @@ task through the model, takes principal angles between the two gradient
 subspaces per module, and adapts the modules where the tasks overlap least. On Llama-3-8B fine-tuned from code to
 prose, this retains $36.8\%$ more of the model's original capability than the
 default placement with the same number of adapted modules (9 of 10 seeds,
-Wilcoxon $p = 0.006$), with plain LoRA in both arms. The diagnostic takes minutes
+Wilcoxon $p = 0.006$), with plain LoRA in both arms. A pre-registered control
+isolates what the measurement adds beyond the paper describing it: against the
+placement a reader could build without measuring, which has the same module types
+and therefore the same parameter budget but arbitrary layers, the measured
+placement retains $0.329$ more, in ten seeds out of ten. The diagnostic takes minutes
 and trains nothing. Its ordering places \texttt{o\_proj} first and
 \texttt{q\_proj} second across three model families and three task pairs, while
 the last two positions do not transfer, which is why we present it as a
@@ -45,7 +49,7 @@ surveys them. What none of them use, as far as we can tell, is the quantity that
 governs how much a model forgets, which is how much the \emph{two specific tasks
 at hand} overlap. Existing placement criteria score a module by its own
 importance, by how much its features would move, or by alignment with the
-pre-trained weights --- all properties of the model and the new task, not of the
+pre-trained weights, all properties of the model and the new task, not of the
 relationship between the old task and the new one.
 
 This paper asks whether selecting on that relationship works, and whether it can
@@ -91,6 +95,19 @@ the overlap. On constructed subspaces sharing $k$ of $8$ directions, the leading
 cosine returns $1.0000$ for every $k \geq 1$ while this sum returns $1.03$,
 $2.01$, $4.01$, $6.00$ and $8.00$ for $k = 1, 2, 4, 6, 8$.
 
+Whether that saturation actually binds on real weights is model-dependent, and
+we state it because the released diagnostic invites the reader to check it. On
+Llama-3-8B the leading cosine is $1.0000$ at every rank we measured. On other
+bases it is not: the median leading cross-task cosine is $0.858$ on
+Mistral-7B-v0.3 (minimum $0.104$, 20 of 128 modules above $0.999$), $0.844$ on
+Qwen2.5-7B (minimum $0.298$, none above $0.999$) and $0.890$ on
+TinyLlama-1.1B. The construction above holds exactly wherever two subspaces
+share a direction; on real gradients they share directions only approximately,
+and how close that approximation gets is a property of the base model. The
+effective dimension is therefore the safe statistic rather than a strictly
+necessary one, and the claim of saturation should be read as measured on
+Llama-3-8B and not as general.
+
 \paragraph{The reference is a same-task ceiling, not a random-subspace null.}
 Two gradients taken from the same model share directions dictated by that
 model's structure regardless of which task produced them, so comparing against
@@ -105,17 +122,23 @@ and since a module with a low ceiling cannot drop far, we rank by the drop
 projections. Nothing in the criterion is specific to them, and other placement
 work reports MLP modules mattering~\cite{hayou2025,domlora2026}, so extending
 the candidate set is straightforward; we have not measured that case and do not
-claim anything about it.
+claim anything about it. The gap is not merely one of coverage. DomLoRA reports
+a shallow FFN down-projection as the dominant module while the set selected here
+is attention and mostly deep, and the two probes are asking different questions:
+theirs is by construction task-stable, ours is defined on the pair of tasks. A
+reader should treat the candidate set as a scope limitation of this measurement
+and not as a claim that MLP modules do not matter.
 
 The whole measurement is a forward and backward pass over a few batches, with no
 optimiser and no parameter updates. It takes minutes on one GPU.
 
 \section{Does it work?}
+\label{sec:work}
 
 We fine-tune Llama-3-8B from code to prose and measure retained code capability
 by HumanEval pass@1 over ten random seeds; the protocol is in
 Appendix~\ref{app:proto}. The placement TIM suggests is the quartile of largest relative drop: 17 \texttt{o\_proj}, 10 \texttt{q\_proj} and 4 \texttt{k\_proj}
-modules, and no \texttt{v\_proj} at all --- already at odds with the default,
+modules, and no \texttt{v\_proj} at all, already at odds with the default,
 since \texttt{v\_proj} is one of the two the default adapts. The comparison arm
 uses query and value projections across layers spread through the model, cut to
 the \emph{same count} of 31 modules, so that what varies between arms is
@@ -145,7 +168,7 @@ inflated by a ceiling effect; the small difference runs against the measured arm
 if anything.
 
 \paragraph{The ordering transfers; its tail does not.} Running the diagnostic
-alone --- no training --- on Llama-3-8B with two further task pairs, and on
+alone, with no training, on Llama-3-8B with two further task pairs, and on
 Mistral-7B and Qwen2.5-7B with code to prose, puts \texttt{o\_proj} first and
 \texttt{q\_proj} second in all five combinations.
 
@@ -181,8 +204,8 @@ fixed recommendation to adopt.
 
 A separate line of our own work penalises a topological property of the weight
 graph during training and improves retention on the same
-protocol~\cite{acedo2026omegas}. The two act at different points --- one chooses
-where trainable parameters go, the other constrains how they end up --- so we
+protocol~\cite{acedo2026omegas}. The two act at different points: one chooses
+where trainable parameters go and the other constrains how they end up, so we
 asked whether they compose, and measured it rather than assuming.
 
 The answer is that we cannot tell. Adding the penalty on top of the TIM placement gives 6 of 10 seeds on the retention ratio and 7 of 10 on absolute
@@ -199,6 +222,138 @@ and the sign reversed on recalibration. Any penalty strength chosen for one
 configuration should be re-derived for another, and a negative result obtained
 without doing so says nothing.
 
+\section{Does the ranking transfer, and could a cheap rule replace it?}
+
+Two questions follow immediately from a single-model result, and both can be
+answered from the diagnostic alone, without training anything.
+
+\paragraph{The type ordering transfers; the depth pattern does not.}
+We ran the same measurement, code to prose, on Mistral-7B-v0.3 and
+Qwen2.5-7B. In both, \texttt{o\_proj} leads and \texttt{v\_proj} is absent or
+last, as on Llama-3-8B. The depth pattern behaves differently. Taking the top
+quartile by relative drop, the mean layer index is $20.2$ against $13.9$ for the
+rest on Mistral, with 78 per cent of the quartile in the deep half of the
+network; on Qwen the same figures are $13.1$ against $13.6$ and 46 per cent,
+which is what an even spread looks like. Fitting the relative drop from module
+type and layer depth and scoring out of sample (linear regression, five-fold
+cross-validation), depth adds substantially on Mistral, where $R^2$ goes from
+$0.28$ with type alone to $0.65$ with both, and adds nothing on Qwen, where it
+is negative alone and the pair, $0.31$, does not improve on type alone, $0.32$.
+
+The concentration in deep layers is therefore a property of the base model
+rather than of the diagnostic, and there is no way to know which case one is in
+without measuring.
+
+\paragraph{A two-variable rule ranks well and still selects differently.}
+The obvious objection to any pre-training probe is that a rule over module type
+and layer depth might reproduce its output for free. Scored as a ranking over
+all modules, such a rule looks strong: the area under the ROC curve for
+membership of the suggested set is $0.86$ on Llama-3-8B, $0.92$ on Mistral and
+$0.83$ on Qwen. That figure overstates the agreement, because most of the
+universe is easy; \texttt{v\_proj} is never selected anywhere, and a rule that
+gets the easy cases right scores well without settling the decision that
+matters.
+
+The decision is a set, not a ranking. Compared set against set at equal size,
+the same rule fitted on the diagnostic's own labels agrees on 21 of 31 modules
+on Llama, 21 of 32 on Mistral and 19 of 28 on Qwen, so roughly a third of the
+selection differs. A reader of this paper cannot even fit that rule: we report
+the type composition of the suggested set but not its depth distribution, so the
+placement such a reader would build is the published composition with layers
+chosen arbitrarily, which agrees with the suggested set on $12.7$ of 31 modules
+on average over ten thousand draws.
+
+\paragraph{The measured placement beats the reader's, and by a wide margin.}
+Selecting a different set is not the same as retaining differently, so we ran
+that arm. It was pre-registered before any result existed: the module lists were
+frozen in advance, one random draw of layers per seed, with a stated
+indistinguishability threshold of $0.066$ in mean retention at ten seeds. Both
+arms were run in a single session on the same hardware, including a fresh run of
+the measured arm, so that nothing in the comparison crosses environments.
+
+\begin{table}[h]
+\centering
+\caption{Retention on HumanEval, Llama-3-8B, code to prose, ten seeds, both arms
+run in one session. \emph{Measured} is the placement TIM suggests; \emph{reader}
+is the published type composition (17/10/4) with layers drawn at random, one
+draw per seed. The two share type composition and therefore trainable parameter
+budget exactly; only the choice of layers differs.}
+\label{tab:reader}
+\begin{tabular}{lrrr}
+\hline
+Seed & Measured & Reader & Difference \\
+\hline
+42   & 0.805 & 0.218 & $+0.587$ \\
+123  & 0.580 & 0.304 & $+0.276$ \\
+456  & 0.739 & 0.591 & $+0.148$ \\
+789  & 0.718 & 0.349 & $+0.369$ \\
+1011 & 0.781 & 0.292 & $+0.489$ \\
+2022 & 0.711 & 0.488 & $+0.223$ \\
+3033 & 0.778 & 0.295 & $+0.483$ \\
+4044 & 0.787 & 0.590 & $+0.198$ \\
+5055 & 0.725 & 0.463 & $+0.262$ \\
+6066 & 0.593 & 0.333 & $+0.259$ \\
+\hline
+Mean & 0.722 & 0.392 & $\mathbf{+0.329}$ \\
+\hline
+\end{tabular}
+\end{table}
+
+The paired difference is $+0.329$ with standard deviation $0.146$, standard
+error $0.046$, $t = 7.16$, and the measured arm wins in ten seeds out of ten.
+The pre-registered threshold was $0.066$.
+
+Because the two arms share type composition, they share the trainable parameter
+budget exactly, and the only thing that differs between them is which layers are
+adapted. The gap is therefore attributable to depth selection, which is
+precisely the information the diagnostic supplies and this paper does not print.
+
+Acquisition runs against the measured arm rather than for it. The reader's
+placement reaches higher capability after the first task, $0.312$ against
+$0.273$, and retains far less, so the advantage is not a ratio flattered by an
+arm that learned less.
+
+One result we did not expect: the reader's placement is also worse than the
+plain \texttt{q,v} default, by $0.148$ in eight seeds of ten. Publishing a type
+composition without its depth distribution is worse for a reader than publishing
+nothing, which is an argument for shipping the full placement rather than a
+summary of it, and we do.
+
+\paragraph{Equal module count is not equal capacity.}
+Table~\ref{tab:budget} states a confound in the comparison of
+Section~\ref{sec:work} that the module-count control does not remove. Under
+grouped-query attention, \texttt{q\_proj} and \texttt{o\_proj} are
+$4096 \times 4096$ while \texttt{k\_proj} and \texttt{v\_proj} are
+$4096 \times 1024$, so equal module counts carry unequal parameter budgets.
+
+\begin{table}[h]
+\centering
+\caption{Trainable LoRA parameters at $r=8$ for the two placements of
+Table~\ref{tab:main}. The comparison against the default is not
+parameter-matched; the comparison in Table~\ref{tab:reader} is.}
+\label{tab:budget}
+\begin{tabular}{lrr}
+\hline
+Placement & Modules & Trainable parameters \\
+\hline
+Measured (17 o, 10 q, 4 k) & 31 & 1{,}933{,}312 \\
+Default (16 q, 15 v)       & 31 & 1{,}662{,}976 \\
+\hline
+\end{tabular}
+\end{table}
+
+The measured arm therefore carries 16.3 per cent more trainable capacity in that
+comparison. It does not reach Table~\ref{tab:reader}, where composition and
+budget are identical by construction, and that is the comparison we would ask a
+reader to weigh.
+
+\paragraph{Modular frameworks answer a different question.} Adapter frameworks
+in the multi-task and multilingual line avoid interference by isolation, giving
+each language and each task its own module and inserting it uniformly at every
+layer~\cite{pfeiffer2020madx}. Placement there is fixed by the architecture. The
+question here is the complementary one: with a single adapter and a fixed
+budget, where does it go.
+
 \section{What this does not establish}
 
 \paragraph{A second training validation.} We attempted one on Mistral-7B and
@@ -210,11 +365,16 @@ this selection procedure, so it does not stand in for that.
 
 \paragraph{How much variation this setting carries.}
 \label{sec:noise}
-Repeating an identical configuration --- same seed, same code, same hardware ---
+Repeating an identical configuration (same seed, same code, same hardware)
 gives a standard deviation of $0.104$ in retention ratio, with individual repeats
 as far apart as $0.596$ and $0.793$. The seed does not identify the run, so a
 seed-paired test compares runs differing by more than the seed, and any mean
-difference below roughly $0.066$ is not distinguishable at ten seeds. That GPU
+difference below roughly $0.066$ is not distinguishable at ten seeds.
+Re-running the measured placement on different hardware and library versions moves
+individual values well beyond that band: seed 42 went from $0.533$ to $0.805$ with
+identical code and seed. The distribution reproduces and the comparison between arms is
+unchanged, but per-seed values do not transfer across machines, and a reader rerunning
+this repository elsewhere should expect to match the former and not the latter. That GPU
 non-determinism dominates seed variance is documented in vision~\cite{morin2020}
 and reinforcement learning~\cite{nagarajan2018}; we have not found it quantified
 for low-rank fine-tuning of language models, and it bounds every seed-paired
@@ -289,14 +449,16 @@ that this preserves the top-$k$ singular triples exactly, and introduces a
 metric $\rho_k$ for how much an update aligns with dominant directions.
 
 \paragraph{OPLoRA in particular is complementary, not competing.} It is the
-closest work to ours in problem and in tooling --- both reason about subspaces,
-both target forgetting --- so the distinction is worth stating precisely. OPLoRA
+closest work to ours in problem and in tooling, since both reason about
+subspaces and both target forgetting, so the distinction is worth stating
+precisely. OPLoRA
 protects the dominant singular directions \emph{of the pre-trained weights}, a
 quantity that does not depend on which tasks are involved; we measure where the
 \emph{two tasks' gradients} overlap, which does. And the two act at different
 points: OPLoRA modifies the update inside modules that have already been chosen,
-whereas this work chooses which modules to instrument at all. Doing both --- select placement with TIM, then project updates within the
-selected modules ---
+whereas this work chooses which modules to instrument at all. Doing both, that
+is selecting placement with TIM and then projecting updates within the selected
+modules,
 is coherent and untested, and we would be glad to see it tried.
 
 \paragraph{Why we report no head-to-head numbers.} We compare accuracy against
@@ -314,12 +476,18 @@ Steele~\cite{steele2026} observes that orthogonalisation-based methods add
 little where natural orthogonality is already high. Our measurement finds
 exactly that in seven of eight principal directions, which suggests the room for
 projection methods varies by setting as much as the room for placement does.
+That per-direction breakdown is not recoverable from the released
+data file, which stores per-type means and the retention outcomes only; we
+record it here as a measurement we made and did not ship, rather than as one
+the reader can reproduce from this repository.
 
 \section{Conclusion}
 
 The default placement for low-rank adapters is a default: selected once, on one
 model, and carried since. TIM replaces it with a measurement that takes minutes, and in the case we
-tested doing so retains a third more capability. The
+tested doing so retains a third more capability. A pre-registered control separates the
+measurement from the paper that describes it: applying the composition we publish, without
+measuring which layers, is worse than the default it replaces. The
 ordering that measurement produces is stable at its head across three model
 families and three task pairs and unstable at its tail, which makes it a
 diagnostic to run rather than a rule to copy, and that is how we offer it.
@@ -411,6 +579,10 @@ Amazon Science (2026).
 Optimizing LoRA target module selection for efficient fine tuning.
 \emph{Amazon Science Blog}.
 \url{https://www.amazon.science/blog/optimizing-lora-target-module-selection-for-efficient-fine-tuning}
+
+\bibitem{pfeiffer2020madx}
+Pfeiffer J, Vuli\'c I, Gurevych I, Ruder S (2020) MAD-X: An Adapter-Based
+Framework for Multi-Task Cross-Lingual Transfer. \emph{EMNLP}, 7654--7673.
 
 \bibitem{morin2020}
 Morin M, Willetts M (2020).
